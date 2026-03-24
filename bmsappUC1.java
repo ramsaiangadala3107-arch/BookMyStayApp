@@ -1,77 +1,69 @@
+import java.util.HashMap;
+import java.util.Map;
 
-// Abstract Class
-abstract class Room {
-    private String roomType;
-    private int beds;
-    private double price;
+class RoomInventory {
 
-    // Constructor
-    public Room(String roomType, int beds, double price) {
-        this.roomType = roomType;
-        this.beds = beds;
-        this.price = price;
+    private HashMap<String, Integer> inventory;
+
+    // Constructor - initialize inventory
+    public RoomInventory() {
+        inventory = new HashMap<>();
+
+        // Initial room availability
+        inventory.put("Single Room", 5);
+        inventory.put("Double Room", 3);
+        inventory.put("Suite Room", 2);
     }
 
-    // Method to display common details
-    public void displayDetails() {
-        System.out.println("Room Type : " + roomType);
-        System.out.println("Beds      : " + beds);
-        System.out.println("Price     : ₹" + price);
+    // Get availability of a room type
+    public int getAvailability(String roomType) {
+        return inventory.getOrDefault(roomType, 0);
     }
-}
 
-// Single Room Class
-class SingleRoom extends Room {
-    public SingleRoom() {
-        super("Single Room", 1, 1000);
+    // Update availability (controlled update)
+    public void updateAvailability(String roomType, int count) {
+        if (inventory.containsKey(roomType)) {
+            inventory.put(roomType, count);
+        } else {
+            System.out.println("Room type not found!");
+        }
     }
-}
 
-// Double Room Class
-class DoubleRoom extends Room {
-    public DoubleRoom() {
-        super("Double Room", 2, 2000);
-    }
-}
-
-// Suite Room Class
-class SuiteRoom extends Room {
-    public SuiteRoom() {
-        super("Suite Room", 3, 5000);
+    // Display full inventory
+    public void displayInventory() {
+        System.out.println("\n--- Current Room Inventory ---");
+        for (Map.Entry<String, Integer> entry : inventory.entrySet()) {
+            System.out.println(entry.getKey() + " : " + entry.getValue());
+        }
     }
 }
 
-// Main Application Class
+// Main Application
 public class bmsappUC1 {
 
     public static void main(String[] args) {
 
         System.out.println("=========================================");
-        System.out.println("        BOOK MY STAY - ROOM DETAILS      ");
+        System.out.println("   BOOK MY STAY - INVENTORY MANAGEMENT   ");
         System.out.println("=========================================");
 
-        // Creating room objects (Polymorphism)
-        Room single = new SingleRoom();
-        Room doubleRoom = new DoubleRoom();
-        Room suite = new SuiteRoom();
+        // Initialize inventory (Single Source of Truth)
+        RoomInventory inventory = new RoomInventory();
 
-        // Static availability variables
-        int singleAvailable = 5;
-        int doubleAvailable = 3;
-        int suiteAvailable = 2;
+        // Display initial inventory
+        inventory.displayInventory();
 
-        // Display details
-        System.out.println("\n--- Single Room ---");
-        single.displayDetails();
-        System.out.println("Available : " + singleAvailable);
+        // Check availability
+        System.out.println("\nAvailable Single Rooms: " +
+                inventory.getAvailability("Single Room"));
 
-        System.out.println("\n--- Double Room ---");
-        doubleRoom.displayDetails();
-        System.out.println("Available : " + doubleAvailable);
+        // Update inventory (simulate booking)
+        System.out.println("\nBooking 1 Single Room...");
+        int current = inventory.getAvailability("Single Room");
+        inventory.updateAvailability("Single Room", current - 1);
 
-        System.out.println("\n--- Suite Room ---");
-        suite.displayDetails();
-        System.out.println("Available : " + suiteAvailable);
+        // Display updated inventory
+        inventory.displayInventory();
 
         System.out.println("\n=========================================");
         System.out.println("System terminated.");
