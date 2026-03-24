@@ -1,34 +1,36 @@
 import java.util.*;
 
-// ----------- CUSTOM EXCEPTIONS -----------
-class InvalidRoomTypeException extends Exception {
-    public InvalidRoomTypeException(String message) {
-        super(message);
-    }
-}
-
-class InsufficientAvailabilityException extends Exception {
-    public InsufficientAvailabilityException(String message) {
-        super(message);
-    }
-}
-
 // ----------- RESERVATION -----------
 class Reservation {
+    private String reservationId;
     private String guestName;
     private String roomType;
+    private String roomId;
 
-    public Reservation(String guestName, String roomType) {
+    public Reservation(String reservationId, String guestName, String roomType, String roomId) {
+        this.reservationId = reservationId;
         this.guestName = guestName;
         this.roomType = roomType;
+        this.roomId = roomId;
     }
 
-    public String getGuestName() {
-        return guestName;
+    public String getReservationId() {
+        return reservationId;
     }
 
     public String getRoomType() {
         return roomType;
+    }
+
+    public String getRoomId() {
+        return roomId;
+    }
+
+    public void display() {
+        System.out.println("ID: " + reservationId +
+                " | Guest: " + guestName +
+                " | Room: " + roomType +
+                " | RoomID: " + roomId);
     }
 }
 
@@ -37,43 +39,62 @@ class RoomInventory {
     private Map<String, Integer> inventory = new HashMap<>();
 
     public RoomInventory() {
-        inventory.put("Single Room", 2);
+        inventory.put("Single Room", 1);
         inventory.put("Double Room", 1);
         inventory.put("Suite Room", 1);
     }
 
-    public int getAvailability(String roomType) {
-        return inventory.getOrDefault(roomType, -1);
+    public void increaseAvailability(String roomType) {
+        inventory.put(roomType, inventory.get(roomType) + 1);
     }
 
-    public void reduceAvailability(String roomType) throws InsufficientAvailabilityException {
-        int available = inventory.get(roomType);
-        if (available <= 0) {
-            throw new InsufficientAvailabilityException("No rooms available for " + roomType);
+    public void displayInventory() {
+        System.out.println("\n--- Inventory ---");
+        for (Map.Entry<String, Integer> e : inventory.entrySet()) {
+            System.out.println(e.getKey() + " : " + e.getValue());
         }
-        inventory.put(roomType, available - 1);
     }
 }
 
-// ----------- VALIDATOR -----------
-class BookingValidator {
+// ----------- BOOKING HISTORY -----------
+class BookingHistory {
+    private Map<String, Reservation> history = new HashMap<>();
 
-    private Set<String> validRoomTypes;
-
-    public BookingValidator(Set<String> validRoomTypes) {
-        this.validRoomTypes = validRoomTypes;
+    public void addReservation(Reservation r) {
+        history.put(r.getReservationId(), r);
     }
 
-    public void validate(Reservation r, RoomInventory inventory)
-            throws InvalidRoomTypeException, InsufficientAvailabilityException {
+    public Reservation getReservation(String id) {
+        return history.get(id);
+    }
 
-        if (!validRoomTypes.contains(r.getRoomType())) {
-            throw new InvalidRoomTypeException("Invalid room type: " + r.getRoomType());
+    public void removeReservation(String id) {
+        history.remove(id);
+    }
+}
+
+// ----------- CANCELLATION SERVICE -----------
+class CancellationService {
+
+    private Stack<String> rollbackStack = new Stack<>();
+
+    public void cancel(String reservationId, BookingHistory history, RoomInventory inventory) {
+
+        Reservation r = history.getReservation(reservationId);
+
+        if (r == null) {
+            System.out.println("Cancellation failed: Reservation not found.");
+            return;
         }
 
-        if (inventory.getAvailability(r.getRoomType()) <= 0) {
-            throw new InsufficientAvailabilityException("No availability for " + r.getRoomType());
-        }
+        rollbackStack.push(r.getRoomId());
+
+        inventory.increaseAvailability(r.getRoomType());
+
+        history.removeReservation(reservationId);
+
+        System.out.println("\nCancellation successful for Reservation: " + reservationId);
+        System.out.println("Released Room ID: " + rollbackStack.peek());
     }
 }
 
@@ -83,35 +104,21 @@ public class bmsappUC1 {
     public static void main(String[] args) {
 
         RoomInventory inventory = new RoomInventory();
+        BookingHistory history = new BookingHistory();
 
-        Set<String> validTypes = new HashSet<>();
-        validTypes.add("Single Room");
-        validTypes.add("Double Room");
-        validTypes.add("Suite Room");
+        Reservation r1 = new Reservation("RES101", "Ram", "Single Room", "SI-101");
+        history.addReservation(r1);
 
-        BookingValidator validator = new BookingValidator(validTypes);
+        CancellationService service = new CancellationService();
 
-        List<Reservation> requests = Arrays.asList(
-                new Reservation("Ram", "Single Room"),
-                new Reservation("Arjun", "Luxury Room"),   // invalid
-                new Reservation("Priya", "Suite Room"),
-                new Reservation("Kiran", "Suite Room")     // may fail if no availability
-        );
+        System.out.println("Before Cancellation:");
+        inventory.displayInventory();
 
-        for (Reservation r : requests) {
-            try {
-                System.out.println("\nProcessing booking for " + r.getGuestName());
+        service.cancel("RES101", history, inventory);
 
-                validator.validate(r, inventory);
-                inventory.reduceAvailability(r.getRoomType());
+        System.out.println("\nAfter Cancellation:");
+        inventory.displayInventory();
 
-                System.out.println("Booking successful for " + r.getGuestName());
-
-            } catch (InvalidRoomTypeException | InsufficientAvailabilityException e) {
-                System.out.println("Booking failed: " + e.getMessage());
-            }
-        }
-
-        System.out.println("\nSystem continues running safely.");
+        service.cancel("RES999", history, inventory);
     }
 }
