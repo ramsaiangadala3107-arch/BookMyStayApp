@@ -42,7 +42,7 @@ class SuiteRoom extends Room {
 }
 
 // Main Application Class
-public class bmsappUC2 {
+public class bmsappUC1 {
 
     public static void main(String[] args) {
 
